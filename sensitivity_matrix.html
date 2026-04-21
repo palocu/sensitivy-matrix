@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeFi Lending — Implied FDV Sensitivity Matrix</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #08080d; color: #e0e0e0; font-family: 'IBM Plex Mono', monospace; min-height: 100vh; padding: 20px 12px; }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: 1.5px; }
+  .sub { font-size: 10px; color: #555; margin-top: 3px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 24px; margin: 16px 0; padding: 14px 16px; background: #0c0c14; border-radius: 6px; border: 1px solid #16162a; }
+  .slider-group { flex: 1; min-width: 280px; }
+  .slider-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
+  .slider-label { font-size: 10px; color: #777; letter-spacing: 1px; text-transform: uppercase; }
+  .slider-value { font-size: 18px; color: #fff; font-weight: 700; }
+  .slider-note { font-size: 9px; color: #444; margin-bottom: 4px; line-height: 1.3; }
+  input[type=range] { width: 100%; accent-color: #33aaff; height: 2px; cursor: pointer; }
+  .table-wrap { overflow-x: auto; border-radius: 6px; border: 1px solid #16162a; }
+  table { border-collapse: collapse; width: 100%; min-width: 780px; }
+  thead th { padding: 8px 4px; background: #0c0c14; text-align: center; font-size: 11px; color: #aaa; font-weight: 700; border-bottom: 2px solid #16162a; min-width: 78px; }
+  thead th:first-child { text-align: left; font-size: 9px; color: #555; letter-spacing: 0.8px; position: sticky; left: 0; z-index: 2; }
+  tbody td:first-child { padding: 6px 8px; background: #0a0a12; font-weight: 700; font-size: 12px; color: #ccc; border-bottom: 1px solid #101020; border-right: 1px solid #16162a; position: sticky; left: 0; z-index: 1; white-space: nowrap; }
+  tbody td { padding: 5px 3px; text-align: center; border-bottom: 1px solid #101020; border-right: 1px solid #101020; transition: all 0.15s ease; }
+  .fdv-main { font-size: 13px; font-weight: 700; line-height: 1.1; }
+  .fdv-sub { font-size: 8px; margin-top: 1px; font-weight: 500; }
+  .legend, .comps { padding: 10px 14px; background: #0a0a12; border-radius: 5px; border: 1px solid #16162a; font-size: 9px; color: #555; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; align-items: center; }
+  .legend-title, .comps-title { color: #777; font-weight: 700; margin-right: 4px; }
+  .comps { margin-top: 8px; line-height: 1.8; }
+  .comp-name { color: #33aaff; }
+  .comp-val { color: #ccc; }
+  .comps-note { color: #444; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>IMPLIED FDV SENSITIVITY</h1>
+  <p class="sub">TVL × Revenue Yield (% of TVL) × FDV/Revenue Multiple → Implied FDV &amp; Return on $200M entry</p>
+
+  <div class="controls">
+    <div class="slider-group">
+      <div class="slider-header">
+        <span class="slider-label">FDV / Revenue Multiple</span>
+        <span class="slider-value" id="multipleDisplay">12x</span>
+      </div>
+      <div class="slider-note">Sky ~4x · Aave ~15x · Euler ~19x · Fluid ~17x</div>
+      <input type="range" id="multipleSlider" min="4" max="30" step="1" value="12">
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="legend">
+    <span class="legend-title">FDV ZONES:</span>
+    <span><span style="color:#ef4444">●</span> &lt;$200M</span>
+    <span><span style="color:#f97316">●</span> $200M–$500M</span>
+    <span><span style="color:#eab308">●</span> $500M–$3B</span>
+    <span><span style="color:#4ade70">●</span> $3B–$13B</span>
+    <span><span style="color:#10b840">●</span> $13B+</span>
+  </div>
+
+  <div class="comps">
+    <div class="comps-title">WHERE COMPS SIT (Rev Yield = Annual Protocol Rev ÷ TVL):</div>
+    <div>
+      <span class="comp-name">Aave</span> — $18.6B TVL, ~$100M rev → <span class="comp-val">0.5%</span> · FDV $1.46B · 
+      <span class="comp-name">Sky</span> — $5.3B TVL, ~$168M net → <span class="comp-val">3.2%</span> · FDV $1.81B · 
+      <span class="comp-name">Morpho</span> — $6.8B TVL, $0 rev → <span class="comp-val">0%</span> · FDV $1.85B
+    </div>
+    <div>
+      <span class="comp-name">Euler</span> — $522M TVL, ~$1.8M rev → <span class="comp-val">0.3%</span> · FDV $34M · 
+      <span class="comp-name">Fluid</span> — $1.2B TVL, ~$12M rev → <span class="comp-val">1.0%</span> · FDV $200M
+    </div>
+    <div class="comps-note">
+      Pure lending: 0.3–0.5% · Multi-product (lending + DEX + structured): 1.0–2.0% · CDP issuers (Sky): 3%+ outlier
+    </div>
+  </div>
+</div>
+
+<script>
+const tvlValues = [0.5, 1, 2, 5, 8, 10, 12, 20, 30, 50, 80];
+const revYields = [0.2, 0.5, 0.7, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0];
+const entryFDV = 200;
+
+function formatFDV(n) {
+  if (n >= 1000) return '$' + (n / 1000).toFixed(1) + 'B';
+  if (n >= 1) return '$' + n.toFixed(0) + 'M';
+  return '$' + (n * 1000).toFixed(0) + 'K';
+}
+function formatMult(n) {
+  if (n >= 100) return n.toFixed(0) + 'x';
+  if (n >= 10) return n.toFixed(1) + 'x';
+  return n.toFixed(2) + 'x';
+}
+function getColor(fdvM) {
+  if (fdvM < 200) return { bg: 'rgba(140,20,20,0.15)', text: '#ef4444', sub: '#7f1d1d' };
+  if (fdvM < 500) return { bg: 'rgba(180,80,20,0.15)', text: '#f97316', sub: '#7c3a0a' };
+  if (fdvM < 3000) return { bg: 'rgba(180,140,20,0.15)', text: '#eab308', sub: '#78600a' };
+  if (fdvM < 13000) {
+    var t = (fdvM - 3000) / 10000;
+    var g = Math.round(190 + t * 30);
+    return { bg: 'rgba(40,' + g + ',80,0.14)', text: 'rgb(74,' + Math.round(210 + t * 45) + ',110)', sub: 'rgb(30,' + Math.round(90 + t * 30) + ',50)' };
+  }
+  var t2 = Math.min(1, (fdvM - 13000) / 20000);
+  var g2 = Math.round(200 + t2 * 55);
+  return { bg: 'rgba(10,' + Math.round(80 + t2 * 40) + ',30,0.25)', text: 'rgb(16,' + g2 + ',64)', sub: 'rgb(10,' + Math.round(100 + t2 * 40) + ',35)' };
+}
+
+function buildHeader() {
+  var thead = document.getElementById('thead');
+  var tr = document.createElement('tr');
+  var th0 = document.createElement('th');
+  th0.textContent = 'TVL ↓ / Rev % of TVL →';
+  tr.appendChild(th0);
+  revYields.forEach(function(ry) {
+    var th = document.createElement('th');
+    th.textContent = ry.toFixed(1) + '%';
+    tr.appendChild(th);
+  });
+  thead.appendChild(tr);
+}
+
+function render() {
+  var mult = parseInt(document.getElementById('multipleSlider').value);
+  document.getElementById('multipleDisplay').textContent = mult + 'x';
+  var tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+
+  tvlValues.forEach(function(tvl) {
+    var tr = document.createElement('tr');
+    var tdLabel = document.createElement('td');
+    tdLabel.textContent = '$' + (tvl >= 1 ? tvl + 'B' : (tvl * 1000) + 'M');
+    tr.appendChild(tdLabel);
+
+    revYields.forEach(function(ry) {
+      var revM = tvl * 1000 * (ry / 100);
+      var impliedFDV = revM * mult;
+      var returnMult = impliedFDV / entryFDV;
+      var c = getColor(impliedFDV);
+
+      var td = document.createElement('td');
+      td.style.background = c.bg;
+
+      var d1 = document.createElement('div');
+      d1.className = 'fdv-main';
+      d1.style.color = c.text;
+      d1.textContent = formatFDV(impliedFDV);
+
+      var d2 = document.createElement('div');
+      d2.className = 'fdv-sub';
+      d2.style.color = c.sub;
+      d2.textContent = formatMult(returnMult) + ' · $' + revM.toFixed(1) + 'M';
+
+      td.appendChild(d1);
+      td.appendChild(d2);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+buildHeader();
+render();
+document.getElementById('multipleSlider').addEventListener('input', render);
+</script>
+</body>
+</html>
